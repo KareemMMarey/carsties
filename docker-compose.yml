@@ -6,6 +6,13 @@ services:
     ports:
       - 5532:5432 # I faced a problem that i was running a postgres instance on my local machine in the default port, so when i changed it it worked properly
     volumes:
-      - pgdata:/var/lib/postgresql/data
-volumes:
-  pgdata:
+      - /var/lib/postgresql/data
+  mongodb:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=mongopw
+    ports:
+      - 27017:27017
+    volumes:
+      -  /var/lib/mongodb/data
