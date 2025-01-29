@@ -1,0 +1,134 @@
+<div>
+    <h2>Customer Feedback Survey Statistics</h2>
+    <table border="1" id="surveyStats">
+        <thead>
+            <tr>
+                <th>Service Type</th>
+                <th>Average Score (Q1)</th>
+                <th>Average Score (Q2)</th>
+                <th>Average Score (Q3)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <canvas id="surveyChart" width="400" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        fetchSurveyData();
+    });
+
+    function fetchSurveyData() {
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('CustomerFeedbackSurvey')/items",
+            type: "GET",
+            headers: {
+                "Accept": "application/json;odata=verbose"
+            },
+            success: function(data) {
+                processSurveyData(data.d.results);
+            },
+            error: function(error) {
+                console.error("Error fetching survey data", error);
+            }
+        });
+    }
+
+    function processSurveyData(surveyData) {
+        let serviceStats = {};
+
+        surveyData.forEach(item => {
+            let serviceType = item.Survey_x0020_Type;
+            let q1 = parseInt(item.Question_x0020_1);
+            let q2 = parseInt(item.Question_x0020_2);
+            let q3 = parseInt(item.Question_x0020_3);
+
+            if (!serviceStats[serviceType]) {
+                serviceStats[serviceType] = { q1Total: 0, q2Total: 0, q3Total: 0, count: 0 };
+            }
+
+            serviceStats[serviceType].q1Total += q1;
+            serviceStats[serviceType].q2Total += q2;
+            serviceStats[serviceType].q3Total += q3;
+            serviceStats[serviceType].count++;
+        });
+
+        displayTable(serviceStats);
+        displayChart(serviceStats);
+    }
+
+    function displayTable(serviceStats) {
+        let tbody = $("#surveyStats tbody");
+        tbody.empty();
+
+        for (let serviceType in serviceStats) {
+            let stats = serviceStats[serviceType];
+            let q1Avg = (stats.q1Total / stats.count).toFixed(2);
+            let q2Avg = (stats.q2Total / stats.count).toFixed(2);
+            let q3Avg = (stats.q3Total / stats.count).toFixed(2);
+
+            tbody.append(`
+                <tr>
+                    <td>${serviceType}</td>
+                    <td>${q1Avg}</td>
+                    <td>${q2Avg}</td>
+                    <td>${q3Avg}</td>
+                </tr>
+            `);
+        }
+    }
+
+    function displayChart(serviceStats) {
+        let labels = [];
+        let q1Data = [];
+        let q2Data = [];
+        let q3Data = [];
+
+        for (let serviceType in serviceStats) {
+            let stats = serviceStats[serviceType];
+            labels.push(serviceType);
+            q1Data.push((stats.q1Total / stats.count).toFixed(2));
+            q2Data.push((stats.q2Total / stats.count).toFixed(2));
+            q3Data.push((stats.q3Total / stats.count).toFixed(2));
+        }
+
+        let ctx = document.getElementById("surveyChart").getContext("2d");
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Q1 Average",
+                        data: q1Data,
+                        backgroundColor: "rgba(255, 99, 132, 0.6)"
+                    },
+                    {
+                        label: "Q2 Average",
+                        data: q2Data,
+                        backgroundColor: "rgba(54, 162, 235, 0.6)"
+                    },
+                    {
+                        label: "Q3 Average",
+                        data: q3Data,
+                        backgroundColor: "rgba(75, 192, 192, 0.6)"
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5
+                    }
+                }
+            }
+        });
+    }
+</script>

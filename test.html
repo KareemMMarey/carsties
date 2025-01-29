@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Feedback Survey</title>
+    
+    <!-- Internal Styles -->
+    <style>
+       
+        #surveyContainer {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #007bff;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin: 10px 0 5px;
+        }
+        select, input[type="radio"] {
+            margin-right: 5px;
+        }
+        .radio-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #responseMessage {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+    
+    <!-- jQuery Library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+    <div id="surveyContainer">
+        <div id="surveyForm">
+            <h2>Customer Feedback Survey</h2>
+
+            <label for="serviceType">Service Type:</label>
+            <select id="serviceType" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                <option value="Service A">Service A</option>
+                <option value="Service B">Service B</option>
+                <option value="Service C">Service C</option>
+            </select>
+
+            <label>Question 1: Rate from 1 to 5</label>
+            <div class="radio-group">
+                <input type="radio" name="q1" value="1"> 1
+                <input type="radio" name="q1" value="2"> 2
+                <input type="radio" name="q1" value="3"> 3
+                <input type="radio" name="q1" value="4"> 4
+                <input type="radio" name="q1" value="5"> 5
+            </div>
+
+            <label>Question 2: Rate from 1 to 5</label>
+            <div class="radio-group">
+                <input type="radio" name="q2" value="1"> 1
+                <input type="radio" name="q2" value="2"> 2
+                <input type="radio" name="q2" value="3"> 3
+                <input type="radio" name="q2" value="4"> 4
+                <input type="radio" name="q2" value="5"> 5
+            </div>
+
+            <label>Question 3: Rate from 1 to 5</label>
+            <div class="radio-group">
+                <input type="radio" name="q3" value="1"> 1
+                <input type="radio" name="q3" value="2"> 2
+                <input type="radio" name="q3" value="3"> 3
+                <input type="radio" name="q3" value="4"> 4
+                <input type="radio" name="q3" value="5"> 5
+            </div>
+
+            <button id="submitSurvey">Submit</button>
+        </div>
+
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            async function getSurveyEntityType() {
+                try {
+                    let response = await fetch(_spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('CustomerFeedbackSurvey')?$select=ListItemEntityTypeFullName", {
+                        method: "GET",
+                        headers: { "Accept": "application/json;odata=verbose" }
+                    });
+
+                    let data = await response.json();
+                    console.log("Entity Type:", data.d.ListItemEntityTypeFullName);
+                    return data.d.ListItemEntityTypeFullName;
+                } catch (error) {
+                    console.error("Error retrieving entity type:", error);
+                }
+            }
+
+            getSurveyEntityType();
+
+            const surveyKey = "survey_submitted"; // Prevent duplicate submissions
+
+            if (localStorage.getItem(surveyKey)) {
+                $("#surveyForm").hide();
+                $("#responseMessage").html("<p style='color: green;'>You have already submitted the survey.</p>");
+            }
+
+            $("#submitSurvey").click(function (event) {
+                event.preventDefault();
+
+                var serviceType = $("#serviceType").val();
+                var q1 = $("input[name='q1']:checked").val();
+                var q2 = $("input[name='q2']:checked").val();
+                var q3 = $("input[name='q3']:checked").val();
+
+                if (!q1 || !q2 || !q3) {
+                    $("#responseMessage").html("<p style='color: red;'>Please answer all questions.</p>");
+                    return;
+                }
+
+                var item = {
+                    "__metadata": { "type": "SP.Data.CustomerFeedbackSurveyListItem" },
+                    "Survey_x0020_Type": serviceType,
+                    "Question_x0020_1": q1,
+                    "Question_x0020_2": q2,
+                    "Question_x0020_3": q3
+                };
+
+                $.ajax({
+                    url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('CustomerFeedbackSurvey')/items",
+                    type: "POST",
+                    contentType: "application/json;odata=verbose",
+                    data: JSON.stringify(item),
+                    headers: {
+                        "Accept": "application/json;odata=verbose",
+                        "X-RequestDigest": $("#__REQUESTDIGEST").val()
+                    },
+                    success: function (data) {
+                        localStorage.setItem(surveyKey, "true");
+                        $("#surveyForm").hide();
+                        $("#responseMessage").html("<p style='color: green;'>Survey submitted successfully!</p>");
+                    },
+                    error: function (error) {
+                        console.log(error);
+                        $("#responseMessage").html("<p style='color: red;'>" + error.responseJSON.error.message.value + ".</p>");
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
